@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ratio & Machina — Revista Internacional de Filosofía, IA y Derecho</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --ink: #1a1a1a;
+  --parchment: #f7f3ed;
+  --cream: #ede8df;
+  --gold: #b8860b;
+  --gold-light: #d4a843;
+  --burgundy: #6b1d2a;
+  --slate: #4a4a4a;
+  --mist: #e8e4dc;
+  --white: #ffffff;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+  --serif: 'Cormorant Garamond', Georgia, serif;
+  --sans: 'IBM Plex Sans', 'Helvetica Neue', sans-serif;
+  --mono: 'JetBrains Mono', 'Consolas', monospace;
+  --transition: 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--sans);
+  background: var(--parchment);
+  color: var(--ink);
+  line-height: 1.7;
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── NAVIGATION ── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+  background: rgba(26,26,26,0.97);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(184,134,11,0.2);
+}
+
+.nav-inner {
+  max-width: 1200px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 2rem; height: 64px;
+}
+
+.nav-brand {
+  font-family: var(--serif); font-size: 1.4rem; font-weight: 600;
+  color: var(--parchment); cursor: pointer; transition: var(--transition);
+}
+.nav-brand:hover { color: var(--gold-light); }
+.nav-brand span { color: var(--gold); font-weight: 300; }
+
+.nav-links { display: flex; gap: 0.25rem; align-items: center; }
+
+.nav-link {
+  background: none; border: none; cursor: pointer;
+  font-family: var(--sans); font-size: 0.82rem; font-weight: 500;
+  color: rgba(247,243,237,0.7); padding: 0.5rem 1rem;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  transition: var(--transition); border-radius: 4px; position: relative;
+}
+.nav-link:hover { color: var(--parchment); background: rgba(255,255,255,0.06); }
+.nav-link.active { color: var(--gold-light); }
+.nav-link.active::after {
+  content: ''; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%);
+  width: 16px; height: 2px; background: var(--gold); border-radius: 1px;
+}
+
+.nav-auth {
+  background: none; border: 1px solid rgba(184,134,11,0.4); cursor: pointer;
+  font-family: var(--sans); font-size: 0.72rem; font-weight: 600;
+  color: var(--gold); padding: 0.4rem 1rem;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  transition: var(--transition); border-radius: 3px; margin-left: 0.5rem;
+}
+.nav-auth:hover { background: var(--gold); color: var(--ink); }
+
+.nav-hamburger {
+  display: none; background: none; border: none; cursor: pointer;
+  width: 28px; height: 20px; position: relative;
+}
+.nav-hamburger span {
+  display: block; width: 100%; height: 2px; background: var(--parchment);
+  position: absolute; left: 0; transition: var(--transition);
+}
+.nav-hamburger span:nth-child(1) { top: 0; }
+.nav-hamburger span:nth-child(2) { top: 9px; }
+.nav-hamburger span:nth-child(3) { top: 18px; }
+
+/* ── PAGES ── */
+.page { display: none; padding-top: 64px; min-height: 100vh; animation: fadeUp 0.5s ease; }
+.page.active { display: block; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── LOADING ── */
+.loading-spinner {
+  display: flex; align-items: center; justify-content: center;
+  padding: 3rem; color: var(--slate); font-size: 0.9rem; gap: 0.8rem;
+}
+.spinner {
+  width: 20px; height: 20px; border: 2px solid var(--mist);
+  border-top-color: var(--gold); border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── HERO ── */
+.hero {
+  position: relative; overflow: hidden;
+  background: var(--ink);
+  min-height: 85vh; display: flex; align-items: center; justify-content: center;
+  text-align: center; padding: 4rem 2rem;
+}
+
+.hero::before {
+  content: ''; position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(107,29,42,0.15) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 50%, rgba(184,134,11,0.1) 0%, transparent 60%),
+    repeating-linear-gradient(90deg, transparent, transparent 119px, rgba(255,255,255,0.015) 119px, rgba(255,255,255,0.015) 120px);
+}
+
+.hero-content { position: relative; z-index: 1; max-width: 800px; }
+
+.hero-eyebrow {
+  font-family: var(--sans); font-size: 0.75rem; font-weight: 500;
+  letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--gold); margin-bottom: 2rem;
+  opacity: 0; animation: fadeUp 0.6s 0.2s ease forwards;
+}
+
+.hero h1 {
+  font-family: var(--serif); font-size: clamp(2.8rem, 6vw, 4.5rem);
+  font-weight: 300; color: var(--parchment); line-height: 1.15;
+  margin-bottom: 0.5rem;
+  opacity: 0; animation: fadeUp 0.6s 0.4s ease forwards;
+}
+.hero h1 em { font-style: italic; font-weight: 500; color: var(--gold-light); }
+
+.hero-sub {
+  font-family: var(--serif); font-size: 1.25rem; font-weight: 300;
+  color: rgba(247,243,237,0.6); margin: 1.5rem 0 2.5rem; font-style: italic;
+  opacity: 0; animation: fadeUp 0.6s 0.6s ease forwards;
+}
+
+.hero-stats {
+  display: flex; gap: 3rem; justify-content: center; margin-top: 3rem;
+  opacity: 0; animation: fadeUp 0.6s 0.8s ease forwards;
+}
+.hero-stat { text-align: center; }
+.hero-stat .num {
+  font-family: var(--serif); font-size: 2rem; font-weight: 600;
+  color: var(--gold-light); display: block;
+}
+.hero-stat .label {
+  font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase;
+  color: rgba(247,243,237,0.45); margin-top: 0.25rem;
+}
+
+.hero-cta {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  margin-top: 2rem; padding: 0.9rem 2.2rem;
+  background: var(--gold); color: var(--ink);
+  font-family: var(--sans); font-size: 0.82rem; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  border: none; cursor: pointer; border-radius: 3px; transition: var(--transition);
+  opacity: 0; animation: fadeUp 0.6s 1s ease forwards;
+}
+.hero-cta:hover { background: var(--gold-light); transform: translateY(-1px); box-shadow: 0 4px 20px rgba(184,134,11,0.3); }
+
+/* ── SECTION SHARED ── */
+.section { max-width: 1200px; margin: 0 auto; padding: 4rem 2rem; }
+.section-header { margin-bottom: 3rem; }
+.section-header h2 {
+  font-family: var(--serif); font-size: 2.2rem; font-weight: 400;
+  color: var(--ink); margin-bottom: 0.5rem;
+}
+.section-header p { color: var(--slate); font-size: 0.95rem; max-width: 600px; }
+.section-divider { width: 40px; height: 2px; background: var(--gold); margin: 1rem 0; }
+
+/* ── CATALOG ── */
+.catalog-controls {
+  display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; align-items: center;
+}
+.search-box { flex: 1; min-width: 250px; position: relative; }
+.search-box input {
+  width: 100%; padding: 0.8rem 1rem 0.8rem 2.8rem;
+  border: 1px solid var(--mist); border-radius: 4px;
+  background: var(--white); font-family: var(--sans); font-size: 0.9rem;
+  transition: var(--transition); color: var(--ink);
+}
+.search-box input:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(184,134,11,0.1); }
+.search-box input::placeholder { color: #aaa; }
+.search-box::before {
+  content: '⌕'; position: absolute; left: 1rem; top: 50%; transform: translateY(-50%);
+  font-size: 1.1rem; color: #999;
+}
+
+.filter-btn {
+  padding: 0.6rem 1.2rem; border: 1px solid var(--mist); border-radius: 4px;
+  background: var(--white); font-family: var(--sans); font-size: 0.8rem;
+  font-weight: 500; cursor: pointer; transition: var(--transition);
+  color: var(--slate);
+}
+.filter-btn:hover { border-color: var(--gold); color: var(--gold); }
+.filter-btn.active { background: var(--ink); color: var(--parchment); border-color: var(--ink); }
+
+.articles-grid { display: flex; flex-direction: column; gap: 1px; background: var(--mist); border-radius: 6px; overflow: hidden; }
+
+.article-card {
+  display: grid; grid-template-columns: auto 1fr auto;
+  gap: 1.5rem; padding: 1.8rem 2rem;
+  background: var(--white); cursor: pointer; transition: var(--transition); align-items: start;
+}
+.article-card:hover { background: rgba(184,134,11,0.03); }
+
+.article-vol {
+  font-family: var(--mono); font-size: 0.7rem; font-weight: 500;
+  color: var(--gold); writing-mode: vertical-rl;
+  letter-spacing: 0.08em; text-transform: uppercase; padding-top: 0.2rem;
+}
+
+.article-body h3 {
+  font-family: var(--serif); font-size: 1.25rem; font-weight: 500;
+  line-height: 1.35; margin-bottom: 0.4rem; color: var(--ink);
+}
+.article-authors { font-size: 0.85rem; color: var(--slate); margin-bottom: 0.6rem; }
+.article-abstract {
+  font-size: 0.85rem; color: #777; line-height: 1.6;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+.article-meta { text-align: right; white-space: nowrap; }
+.article-tag {
+  display: inline-block; padding: 0.2rem 0.6rem; border-radius: 3px;
+  font-size: 0.68rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 0.5rem;
+}
+.tag-filosofía { background: rgba(107,29,42,0.1); color: var(--burgundy); }
+.tag-ia { background: rgba(184,134,11,0.12); color: #8a6508; }
+.tag-derecho { background: rgba(26,26,26,0.08); color: var(--slate); }
+.tag-interdisciplinar { background: rgba(75,0,130,0.08); color: #4b0082; }
+
+.article-date { font-size: 0.75rem; color: #aaa; }
+.article-doi { font-family: var(--mono); font-size: 0.68rem; color: #bbb; margin-top: 0.3rem; }
+
+/* ── EDITORIAL BOARD ── */
+.board-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem; }
+.board-card {
+  background: var(--white); border-radius: 6px; padding: 2rem;
+  border: 1px solid var(--mist); transition: var(--transition);
+  position: relative; overflow: hidden;
+}
+.board-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0;
+  height: 3px; background: linear-gradient(90deg, var(--gold), var(--burgundy));
+  transform: scaleX(0); transform-origin: left; transition: var(--transition);
+}
+.board-card:hover::before { transform: scaleX(1); }
+.board-card:hover { box-shadow: var(--shadow-md); }
+
+.board-role {
+  font-size: 0.68rem; font-weight: 600; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--gold); margin-bottom: 0.8rem;
+}
+.board-name { font-family: var(--serif); font-size: 1.35rem; font-weight: 500; margin-bottom: 0.3rem; }
+.board-affiliation { font-size: 0.85rem; color: var(--slate); margin-bottom: 0.8rem; }
+.board-bio { font-size: 0.82rem; color: #777; line-height: 1.6; }
+.board-links { display: flex; gap: 0.8rem; margin-top: 1rem; }
+.board-link {
+  font-size: 0.72rem; font-weight: 500; color: var(--gold); text-decoration: none;
+  transition: var(--transition);
+}
+.board-link:hover { color: var(--burgundy); }
+
+/* ── SUBMISSION ── */
+.submission-layout { display: grid; grid-template-columns: 1fr 360px; gap: 3rem; align-items: start; }
+.form-group { margin-bottom: 1.5rem; }
+.form-label {
+  display: block; font-size: 0.78rem; font-weight: 600;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--slate); margin-bottom: 0.5rem;
+}
+.form-input, .form-select, .form-textarea {
+  width: 100%; padding: 0.8rem 1rem;
+  border: 1px solid var(--mist); border-radius: 4px;
+  background: var(--white); font-family: var(--sans); font-size: 0.9rem;
+  transition: var(--transition); color: var(--ink);
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(184,134,11,0.1);
+}
+.form-textarea { min-height: 140px; resize: vertical; line-height: 1.6; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+.submit-btn {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.9rem 2.5rem; background: var(--ink); color: var(--parchment);
+  font-family: var(--sans); font-size: 0.82rem; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  border: none; cursor: pointer; border-radius: 4px; transition: var(--transition);
+}
+.submit-btn:hover { background: var(--burgundy); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+.submit-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.sidebar-card {
+  background: var(--white); border: 1px solid var(--mist); border-radius: 6px; padding: 1.8rem; margin-bottom: 1.5rem;
+}
+.sidebar-card h4 { font-family: var(--serif); font-size: 1.1rem; font-weight: 500; margin-bottom: 1rem; }
+.sidebar-card ul { list-style: none; }
+.sidebar-card li {
+  font-size: 0.85rem; color: var(--slate); padding: 0.4rem 0;
+  padding-left: 1.2rem; position: relative; line-height: 1.5;
+}
+.sidebar-card li::before { content: '—'; position: absolute; left: 0; color: var(--gold); font-weight: 600; }
+
+.upload-zone {
+  border: 2px dashed var(--mist); border-radius: 6px;
+  padding: 2.5rem; text-align: center; cursor: pointer;
+  transition: var(--transition); background: rgba(255,255,255,0.5);
+}
+.upload-zone:hover { border-color: var(--gold); background: rgba(184,134,11,0.03); }
+.upload-zone.has-file { border-color: var(--gold); border-style: solid; background: rgba(184,134,11,0.04); }
+.upload-icon { font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.4; }
+.upload-text { font-size: 0.85rem; color: var(--slate); }
+.upload-hint { font-size: 0.75rem; color: #aaa; margin-top: 0.3rem; }
+
+/* ── PEER REVIEW ── */
+.review-dashboard { display: grid; grid-template-columns: 280px 1fr; gap: 2rem; }
+.review-sidebar { background: var(--white); border-radius: 6px; border: 1px solid var(--mist); overflow: hidden; }
+.review-tab {
+  display: flex; align-items: center; gap: 0.8rem;
+  width: 100%; padding: 1rem 1.2rem; border: none; background: none;
+  cursor: pointer; font-family: var(--sans); font-size: 0.85rem;
+  color: var(--slate); transition: var(--transition); text-align: left;
+  border-left: 3px solid transparent;
+}
+.review-tab:hover { background: rgba(184,134,11,0.04); }
+.review-tab.active { background: rgba(184,134,11,0.06); border-left-color: var(--gold); color: var(--ink); font-weight: 500; }
+.review-badge {
+  margin-left: auto; font-size: 0.7rem; font-weight: 600;
+  padding: 0.15rem 0.5rem; border-radius: 10px; background: var(--gold); color: var(--white);
+}
+
+.review-main { background: var(--white); border-radius: 6px; border: 1px solid var(--mist); }
+.review-header {
+  padding: 1.5rem 2rem; border-bottom: 1px solid var(--mist);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.review-header h3 { font-family: var(--serif); font-size: 1.3rem; font-weight: 500; }
+
+.status-pill {
+  padding: 0.3rem 0.8rem; border-radius: 20px;
+  font-size: 0.7rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+}
+.status-pending { background: #fff3cd; color: #856404; }
+.status-in_review { background: #d4edda; color: #155724; }
+.status-revision_minor { background: #cce5ff; color: #004085; }
+.status-accepted { background: rgba(184,134,11,0.15); color: #8a6508; }
+.status-rejected { background: #f8d7da; color: #721c24; }
+
+.review-content { padding: 2rem; }
+.review-item { padding: 1.2rem 0; border-bottom: 1px solid rgba(0,0,0,0.04); }
+.review-item:last-child { border-bottom: none; }
+.review-item-title { font-family: var(--serif); font-size: 1.05rem; font-weight: 500; margin-bottom: 0.3rem; }
+.review-item-meta { font-size: 0.78rem; color: #999; display: flex; gap: 1rem; flex-wrap: wrap; }
+
+.review-actions { display: flex; gap: 0.5rem; margin-top: 1rem; }
+.review-action {
+  padding: 0.4rem 1rem; border-radius: 4px;
+  font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: var(--transition); border: 1px solid;
+}
+.action-accept { background: #d4edda; color: #155724; border-color: #c3e6cb; }
+.action-accept:hover { background: #c3e6cb; }
+.action-revision { background: #cce5ff; color: #004085; border-color: #b8daff; }
+.action-revision:hover { background: #b8daff; }
+.action-reject { background: #f8d7da; color: #721c24; border-color: #f5c6cb; }
+.action-reject:hover { background: #f5c6cb; }
+
+/* ── AUTH OVERLAY ── */
+.auth-locked {
+  text-align: center; padding: 4rem 2rem;
+}
+.auth-locked h3 { font-family: var(--serif); font-size: 1.5rem; margin-bottom: 1rem; }
+.auth-locked p { color: var(--slate); margin-bottom: 2rem; }
+
+/* ── LOGIN MODAL ── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0; z-index: 2000;
+  background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+  align-items: center; justify-content: center; padding: 2rem;
+}
+.modal-overlay.show { display: flex; }
+
+.modal {
+  background: var(--white); border-radius: 8px; max-width: 700px; width: 100%;
+  max-height: 85vh; overflow-y: auto; padding: 2.5rem;
+  box-shadow: var(--shadow-lg); animation: fadeUp 0.3s ease;
+}
+.modal-close {
+  float: right; background: none; border: none; cursor: pointer;
+  font-size: 1.5rem; color: #999; transition: var(--transition);
+}
+.modal-close:hover { color: var(--ink); }
+
+.modal h2 { font-family: var(--serif); font-size: 1.6rem; font-weight: 500; margin-bottom: 0.3rem; clear: both; }
+.modal .modal-abstract { font-size: 0.9rem; line-height: 1.8; color: var(--slate); margin: 1.5rem 0; }
+.modal .modal-keywords { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 1rem 0; }
+.modal .keyword {
+  padding: 0.25rem 0.7rem; background: var(--cream); border-radius: 3px; font-size: 0.75rem; color: var(--slate);
+}
+.modal .modal-section { margin-top: 1.5rem; }
+.modal .modal-section h4 {
+  font-family: var(--serif); font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--gold);
+}
+
+.login-modal { max-width: 420px; }
+.login-modal h2 { text-align: center; margin-bottom: 1.5rem; }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed; bottom: 2rem; right: 2rem; z-index: 9999;
+  background: var(--ink); color: var(--parchment); padding: 1rem 1.5rem;
+  border-radius: 6px; font-size: 0.85rem; box-shadow: var(--shadow-lg);
+  transform: translateY(100px); opacity: 0; transition: var(--transition);
+  border-left: 3px solid var(--gold); max-width: 400px;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+
+/* ── FOOTER ── */
+footer {
+  background: var(--ink); color: rgba(247,243,237,0.5);
+  padding: 3rem 2rem; text-align: center; font-size: 0.8rem;
+}
+footer .footer-brand {
+  font-family: var(--serif); font-size: 1.2rem; font-weight: 500; color: var(--parchment); margin-bottom: 0.5rem;
+}
+footer .footer-brand span { color: var(--gold); }
+footer a { color: var(--gold); text-decoration: none; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+  .submission-layout { grid-template-columns: 1fr; }
+  .review-dashboard { grid-template-columns: 1fr; }
+  .article-card { grid-template-columns: 1fr; gap: 0.8rem; }
+  .article-vol { writing-mode: horizontal-tb; }
+  .article-meta { text-align: left; display: flex; gap: 0.8rem; align-items: center; }
+  .form-row { grid-template-columns: 1fr; }
+}
+@media (max-width: 680px) {
+  .nav-links { display: none; }
+  .nav-links.open {
+    display: flex; flex-direction: column;
+    position: absolute; top: 64px; left: 0; right: 0;
+    background: rgba(26,26,26,0.98); padding: 1rem; gap: 0;
+  }
+  .nav-hamburger { display: block; }
+  .hero-stats { gap: 1.5rem; flex-wrap: wrap; }
+  .board-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ NAVIGATION ═══ -->
+<nav>
+  <div class="nav-inner">
+    <div class="nav-brand" onclick="goTo('home')">Ratio <span>&</span> Machina</div>
+    <button class="nav-hamburger" onclick="toggleMenu()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="nav-links" id="navLinks">
+      <button class="nav-link active" data-page="home" onclick="goTo('home')">Inicio</button>
+      <button class="nav-link" data-page="catalog" onclick="goTo('catalog')">Artículos</button>
+      <button class="nav-link" data-page="board" onclick="goTo('board')">Comité</button>
+      <button class="nav-link" data-page="submit" onclick="goTo('submit')">Enviar</button>
+      <button class="nav-link" data-page="review" onclick="goTo('review')">Revisión</button>
+      <button class="nav-auth" id="authBtn" onclick="handleAuth()">Acceso editor</button>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══ HOME ═══ -->
+<div class="page active" id="page-home">
+  <div class="hero">
+    <div class="hero-content">
+      <div class="hero-eyebrow">Revista Internacional · Open Access · Peer Reviewed</div>
+      <h1>Ratio <em>&</em> Machina</h1>
+      <p class="hero-sub">Filosofía, Inteligencia Artificial y Derecho en diálogo</p>
+      <div class="hero-stats">
+        <div class="hero-stat"><span class="num" id="statArticles">—</span><span class="label">Artículos</span></div>
+        <div class="hero-stat"><span class="num" id="statBoard">—</span><span class="label">Comité</span></div>
+        <div class="hero-stat"><span class="num">12</span><span class="label">Países</span></div>
+        <div class="hero-stat"><span class="num">Vol. III</span><span class="label">Número actual</span></div>
+      </div>
+      <button class="hero-cta" onclick="goTo('catalog')">Explorar el catálogo →</button>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <h2>Último número</h2>
+      <div class="section-divider"></div>
+      <p>Vol. III, Nº 1 · Marzo 2026 — «La agencia humana en la era algorítmica»</p>
+    </div>
+    <div id="latestArticles"><div class="loading-spinner"><div class="spinner"></div>Cargando artículos...</div></div>
+  </div>
+</div>
+
+<!-- ═══ CATALOG ═══ -->
+<div class="page" id="page-catalog">
+  <div class="section">
+    <div class="section-header">
+      <h2>Catálogo de artículos</h2>
+      <div class="section-divider"></div>
+      <p>Todos los artículos publicados, indexados y en acceso abierto</p>
+    </div>
+    <div class="catalog-controls">
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Buscar por título, autor, palabra clave..." oninput="debouncedSearch()">
+      </div>
+      <button class="filter-btn active" data-filter="all" onclick="setFilter('all', this)">Todos</button>
+      <button class="filter-btn" data-filter="filosofía" onclick="setFilter('filosofía', this)">Filosofía</button>
+      <button class="filter-btn" data-filter="ia" onclick="setFilter('ia', this)">IA</button>
+      <button class="filter-btn" data-filter="derecho" onclick="setFilter('derecho', this)">Derecho</button>
+    </div>
+    <div id="catalogArticles"><div class="loading-spinner"><div class="spinner"></div>Cargando catálogo...</div></div>
+  </div>
+</div>
+
+<!-- ═══ BOARD ═══ -->
+<div class="page" id="page-board">
+  <div class="section">
+    <div class="section-header">
+      <h2>Comité Editorial</h2>
+      <div class="section-divider"></div>
+      <p>Académicos internacionales comprometidos con el rigor y la interdisciplinariedad</p>
+    </div>
+    <div id="boardGrid"><div class="loading-spinner"><div class="spinner"></div>Cargando comité...</div></div>
+  </div>
+</div>
+
+<!-- ═══ SUBMIT ═══ -->
+<div class="page" id="page-submit">
+  <div class="section">
+    <div class="section-header">
+      <h2>Envío de manuscritos</h2>
+      <div class="section-divider"></div>
+      <p>Ratio & Machina acepta contribuciones originales en español, inglés y portugués</p>
+    </div>
+    <div class="submission-layout">
+      <div>
+        <form id="submissionForm" onsubmit="handleSubmission(event)">
+          <div class="form-group">
+            <label class="form-label">Título del artículo *</label>
+            <input type="text" class="form-input" name="title" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Autor(es) *</label>
+              <input type="text" class="form-input" name="authors" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Afiliación</label>
+              <input type="text" class="form-input" name="affiliation">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Email de contacto *</label>
+              <input type="email" class="form-input" name="email" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">ORCID</label>
+              <input type="text" class="form-input" name="orcid" placeholder="0000-0000-0000-0000">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Área temática *</label>
+            <select class="form-select" name="category" required>
+              <option value="">Seleccionar área principal...</option>
+              <option value="filosofía">Filosofía de la IA</option>
+              <option value="ia">Ética algorítmica / IA</option>
+              <option value="derecho">Derecho digital</option>
+              <option value="interdisciplinar">Interdisciplinar</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Resumen / Abstract *</label>
+            <textarea class="form-textarea" name="abstract" required></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Palabras clave</label>
+            <input type="text" class="form-input" name="keywords" placeholder="Separadas por coma (máx. 6)">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Manuscrito</label>
+            <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+              <div class="upload-icon">📄</div>
+              <div class="upload-text" id="uploadText">Haz clic o arrastra tu archivo aquí</div>
+              <div class="upload-hint">PDF, DOCX o LaTeX · Máximo 25 MB</div>
+              <input type="file" id="fileInput" hidden accept=".pdf,.docx,.tex,.zip" onchange="handleFileSelect(this)">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Carta de presentación (opcional)</label>
+            <textarea class="form-textarea" name="cover_letter" style="min-height:80px"></textarea>
+          </div>
+          <button type="submit" class="submit-btn" id="submitBtn">Enviar manuscrito →</button>
+        </form>
+      </div>
+      <div>
+        <div class="sidebar-card">
+          <h4>Normas para autores</h4>
+          <ul>
+            <li>Extensión: 6.000–12.000 palabras</li>
+            <li>Formato: doble revisión ciega</li>
+            <li>Citas: estilo APA 7ª edición</li>
+            <li>Idiomas: español, inglés, portugués</li>
+            <li>Originalidad: declaración requerida</li>
+            <li>ORCID obligatorio para todos los autores</li>
+          </ul>
+        </div>
+        <div class="sidebar-card">
+          <h4>Proceso editorial</h4>
+          <ul>
+            <li>Acuse de recibo: 48 horas</li>
+            <li>Evaluación inicial: 2 semanas</li>
+            <li>Revisión por pares: 6–8 semanas</li>
+            <li>Decisión final: 10–12 semanas</li>
+            <li>Publicación: continua (rolling)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ REVIEW (requires auth) ═══ -->
+<div class="page" id="page-review">
+  <div class="section">
+    <div class="section-header">
+      <h2>Panel de revisión</h2>
+      <div class="section-divider"></div>
+      <p>Sistema de gestión editorial y revisión por pares</p>
+    </div>
+    <div id="reviewContainer">
+      <div class="auth-locked" id="reviewLocked">
+        <h3>Acceso restringido</h3>
+        <p>El panel de revisión está reservado para el equipo editorial.</p>
+        <button class="submit-btn" onclick="handleAuth()">Iniciar sesión →</button>
+      </div>
+      <div class="review-dashboard" id="reviewDashboard" style="display:none">
+        <div class="review-sidebar" id="reviewSidebar"></div>
+        <div class="review-main" id="reviewMain"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODALS ═══ -->
+<div class="modal-overlay" id="articleModal">
+  <div class="modal" id="modalContent"></div>
+</div>
+
+<div class="modal-overlay" id="loginModal">
+  <div class="modal login-modal">
+    <button class="modal-close" onclick="closeLogin()">×</button>
+    <h2>Acceso editorial</h2>
+    <form onsubmit="doLogin(event)">
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" class="form-input" id="loginEmail" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Contraseña</label>
+        <input type="password" class="form-input" id="loginPassword" required>
+      </div>
+      <button type="submit" class="submit-btn" style="width:100%;justify-content:center;margin-top:0.5rem">Entrar</button>
+    </form>
+    <p style="text-align:center;margin-top:1rem;font-size:0.78rem;color:#999">
+      ¿Primer acceso? Contacta al director para obtener credenciales.
+    </p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<footer>
+  <div class="footer-brand">Ratio <span>&</span> Machina</div>
+  <p>ISSN 2026-XXXX · © 2026 · <a href="#">Política editorial</a> · <a href="#">Ética de publicación</a></p>
+  <p style="margin-top:0.8rem;font-size:0.72rem;opacity:0.6">Publicación en acceso abierto bajo licencia CC BY 4.0</p>
+</footer>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  ⚙️ CONFIGURACIÓN — REEMPLAZAR CON TUS CREDENCIALES
+// ═══════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://iwoezacytumdnagzwpnq.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_1PAHMw_ywVo8JzIGbS0OSw_si3r8EPF';
+// ═══════════════════════════════════════════════════════
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let currentUser = null;
+let allArticles = [];
+let currentFilter = 'all';
+let searchTimeout = null;
+
+// ═══════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════
+
+function goTo(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+  document.querySelector(`.nav-link[data-page="${page}"]`)?.classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  document.getElementById('navLinks').classList.remove('open');
+
+  if (page === 'catalog') loadArticles();
+  if (page === 'board') loadBoard();
+  if (page === 'review') checkReviewAccess();
+}
+
+function toggleMenu() {
+  document.getElementById('navLinks').classList.toggle('open');
+}
+
+// ═══════════════════════════════════════════
+//  AUTH
+// ═══════════════════════════════════════════
+
+async function checkAuth() {
+  const { data: { session } } = await supabase.auth.getSession();
+  currentUser = session?.user || null;
+  updateAuthUI();
+}
+
+function updateAuthUI() {
+  const btn = document.getElementById('authBtn');
+  if (currentUser) {
+    btn.textContent = 'Cerrar sesión';
+    btn.style.borderColor = 'rgba(107,29,42,0.5)';
+    btn.style.color = '#e8a0a0';
+  } else {
+    btn.textContent = 'Acceso editor';
+    btn.style.borderColor = '';
+    btn.style.color = '';
+  }
+}
+
+function handleAuth() {
+  if (currentUser) {
+    supabase.auth.signOut().then(() => {
+      currentUser = null;
+      updateAuthUI();
+      showToast('Sesión cerrada');
+      if (document.getElementById('page-review').classList.contains('active')) {
+        checkReviewAccess();
+      }
+    });
+  } else {
+    document.getElementById('loginModal').classList.add('show');
+  }
+}
+
+function closeLogin() {
+  document.getElementById('loginModal').classList.remove('show');
+}
+
+async function doLogin(e) {
+  e.preventDefault();
+  const email = document.getElementById('loginEmail').value;
+  const password = document.getElementById('loginPassword').value;
+
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+  if (error) {
+    showToast('Error: ' + error.message);
+    return;
+  }
+
+  currentUser = data.user;
+  updateAuthUI();
+  closeLogin();
+  showToast('Bienvenido al panel editorial');
+
+  if (document.getElementById('page-review').classList.contains('active')) {
+    checkReviewAccess();
+  }
+}
+
+function checkReviewAccess() {
+  if (currentUser) {
+    document.getElementById('reviewLocked').style.display = 'none';
+    document.getElementById('reviewDashboard').style.display = 'grid';
+    loadSubmissions();
+  } else {
+    document.getElementById('reviewLocked').style.display = '';
+    document.getElementById('reviewDashboard').style.display = 'none';
+  }
+}
+
+// ═══════════════════════════════════════════
+//  ARTICLES (public)
+// ═══════════════════════════════════════════
+
+async function loadArticles(filter, search) {
+  let query = supabase
+    .from('articles')
+    .select('*')
+    .eq('status', 'published')
+    .order('published_at', { ascending: false });
+
+  if (filter && filter !== 'all') {
+    query = query.eq('category', filter);
+  }
+
+  if (search) {
+    query = query.or(`title.ilike.%${search}%,authors.ilike.%${search}%,abstract.ilike.%${search}%`);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error('Error loading articles:', error);
+    return;
+  }
+
+  allArticles = data || [];
+  renderArticles('catalogArticles', allArticles);
+
+  // Update stats
+  document.getElementById('statArticles').textContent = allArticles.length;
+}
+
+async function loadLatestArticles() {
+  const { data } = await supabase
+    .from('articles')
+    .select('*')
+    .eq('status', 'published')
+    .order('published_at', { ascending: false })
+    .limit(3);
+
+  if (data) {
+    renderArticles('latestArticles', data);
+    document.getElementById('statArticles').textContent = data.length + '+';
+  }
+}
+
+function renderArticles(target, articles) {
+  const el = document.getElementById(target);
+  if (!articles.length) {
+    el.innerHTML = '<div style="padding:2rem;text-align:center;color:#999">No se encontraron artículos.</div>';
+    return;
+  }
+  el.innerHTML = '<div class="articles-grid">' + articles.map(a => {
+    const catLabel = a.category === 'ia' ? 'IA' : a.category.charAt(0).toUpperCase() + a.category.slice(1);
+    return `
+      <div class="article-card" onclick='openArticle(${JSON.stringify(a.id)})'>
+        <div class="article-vol">${a.volume || '—'}</div>
+        <div class="article-body">
+          <h3>${esc(a.title)}</h3>
+          <div class="article-authors">${esc(a.authors)}</div>
+          <div class="article-abstract">${esc(a.abstract || '')}</div>
+        </div>
+        <div class="article-meta">
+          <span class="article-tag tag-${a.category}">${catLabel}</span>
+          <div class="article-date">${formatDate(a.published_at)}</div>
+          ${a.doi ? `<div class="article-doi">${esc(a.doi)}</div>` : ''}
+        </div>
+      </div>`;
+  }).join('') + '</div>';
+}
+
+function debouncedSearch() {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    loadArticles(currentFilter, document.getElementById('searchInput').value);
+  }, 300);
+}
+
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  loadArticles(f, document.getElementById('searchInput').value);
+}
+
+function openArticle(id) {
+  const a = allArticles.find(x => x.id === id);
+  if (!a) return;
+  const catLabel = a.category === 'ia' ? 'IA' : a.category.charAt(0).toUpperCase() + a.category.slice(1);
+  const kws = (a.keywords || []).map(k => `<span class="keyword">${esc(k)}</span>`).join('');
+
+  document.getElementById('modalContent').innerHTML = `
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <span class="article-tag tag-${a.category}">${catLabel}</span>
+    <h2>${esc(a.title)}</h2>
+    <div class="article-authors">${esc(a.authors)}${a.affiliation ? ' · ' + esc(a.affiliation) : ''}</div>
+    <div class="modal-keywords">${kws}</div>
+    <div class="modal-section">
+      <h4>Resumen</h4>
+      <div class="modal-abstract">${esc(a.abstract || '')}</div>
+    </div>
+    <div class="modal-section">
+      <h4>Metadatos</h4>
+      <p style="font-size:0.85rem;color:var(--slate);line-height:1.8">
+        ${a.doi ? `<strong>DOI:</strong> ${esc(a.doi)}<br>` : ''}
+        <strong>Volumen:</strong> ${esc(a.volume || '—')}<br>
+        <strong>Publicado:</strong> ${formatDate(a.published_at)}<br>
+        <strong>Licencia:</strong> CC BY 4.0
+      </p>
+    </div>
+    <div style="margin-top:1.5rem;display:flex;gap:0.8rem">
+      ${a.pdf_url ? `<a href="${a.pdf_url}" target="_blank" class="submit-btn" style="font-size:0.75rem;padding:0.6rem 1.5rem;text-decoration:none">Descargar PDF</a>` : ''}
+      <button class="submit-btn" style="font-size:0.75rem;padding:0.6rem 1.5rem;background:var(--white);color:var(--ink);border:1px solid var(--mist)" onclick="copyBibtex('${esc(a.id)}')">Citar (BibTeX)</button>
+    </div>`;
+  document.getElementById('articleModal').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('articleModal').classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+function copyBibtex(id) {
+  const a = allArticles.find(x => x.id === id);
+  if (!a) return;
+  const key = a.authors.split(',')[0].trim().split(' ').pop() + (a.published_at || '').slice(0,4);
+  const bib = `@article{${key},
+  title = {${a.title}},
+  author = {${a.authors}},
+  journal = {Ratio \\& Machina},
+  volume = {${a.volume || ''}},
+  year = {${(a.published_at || '').slice(0,4)}},
+  doi = {${a.doi || ''}},
+  url = {https://doi.org/${a.doi || ''}}
+}`;
+  navigator.clipboard.writeText(bib).then(() => showToast('BibTeX copiado al portapapeles'));
+}
+
+// ═══════════════════════════════════════════
+//  BOARD (public)
+// ═══════════════════════════════════════════
+
+async function loadBoard() {
+  const { data } = await supabase
+    .from('board_members')
+    .select('*')
+    .order('display_order', { ascending: true });
+
+  if (!data) return;
+  document.getElementById('statBoard').textContent = data.length;
+  document.getElementById('boardGrid').innerHTML = data.map(m => `
+    <div class="board-card">
+      <div class="board-role">${esc(m.role)}</div>
+      <div class="board-name">${esc(m.name)}</div>
+      <div class="board-affiliation">${esc(m.affiliation || '')}</div>
+      <div class="board-bio">${esc(m.bio || '')}</div>
+      <div class="board-links">
+        ${m.orcid ? `<a href="https://orcid.org/${m.orcid}" class="board-link" target="_blank">ORCID ↗</a>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════
+//  SUBMISSIONS (public insert)
+// ═══════════════════════════════════════════
+
+let selectedFile = null;
+
+function handleFileSelect(input) {
+  if (input.files.length) {
+    selectedFile = input.files[0];
+    document.getElementById('uploadText').textContent = selectedFile.name;
+    document.getElementById('uploadZone').classList.add('has-file');
+  }
+}
+
+async function handleSubmission(e) {
+  e.preventDefault();
+  const form = e.target;
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+
+  try {
+    let filePath = null;
+    let fileName = null;
+
+    // Upload file if selected
+    if (selectedFile) {
+      const ext = selectedFile.name.split('.').pop();
+      const path = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from('manuscripts')
+        .upload(path, selectedFile);
+
+      if (uploadError) {
+        console.warn('File upload failed:', uploadError.message);
+      } else {
+        filePath = path;
+        fileName = selectedFile.name;
+      }
+    }
+
+    // Insert submission
+    const { error } = await supabase.from('submissions').insert({
+      title: form.title.value,
+      authors: form.authors.value,
+      affiliation: form.affiliation.value || null,
+      email: form.email.value,
+      orcid: form.orcid.value || null,
+      category: form.category.value,
+      abstract: form.abstract.value,
+      keywords: form.keywords.value || null,
+      cover_letter: form.cover_letter.value || null,
+      file_path: filePath,
+      file_name: fileName,
+    });
+
+    if (error) throw error;
+
+    showToast('Manuscrito recibido correctamente. Recibirás confirmación en 48h.');
+    form.reset();
+    selectedFile = null;
+    document.getElementById('uploadText').textContent = 'Haz clic o arrastra tu archivo aquí';
+    document.getElementById('uploadZone').classList.remove('has-file');
+
+  } catch (err) {
+    showToast('Error al enviar: ' + err.message);
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Enviar manuscrito →';
+}
+
+// ═══════════════════════════════════════════
+//  REVIEW PANEL (auth required)
+// ═══════════════════════════════════════════
+
+const statusConfig = {
+  pending:        { label: 'Pendientes', icon: '📥' },
+  in_review:      { label: 'En revisión', icon: '🔍' },
+  revision_minor: { label: 'Revisión menor', icon: '✏️' },
+  revision_major: { label: 'Revisión mayor', icon: '📝' },
+  accepted:       { label: 'Aceptados', icon: '✅' },
+  rejected:       { label: 'Rechazados', icon: '✗' },
+};
+
+const statusLabels = {
+  pending: 'Pendiente', in_review: 'En revisión', revision_minor: 'Revisión menor',
+  revision_major: 'Revisión mayor', accepted: 'Aceptado', rejected: 'Rechazado'
+};
+
+let submissionsByStatus = {};
+let currentReviewTab = 'pending';
+
+async function loadSubmissions() {
+  const { data, error } = await supabase
+    .from('submissions')
+    .select('*, reviews(*)')
+    .order('submitted_at', { ascending: false });
+
+  if (error) { console.error(error); return; }
+
+  // Group by status
+  submissionsByStatus = {};
+  for (const s of Object.keys(statusConfig)) {
+    submissionsByStatus[s] = (data || []).filter(x => x.status === s);
+  }
+
+  renderReviewSidebar();
+  renderReviewPanel(currentReviewTab);
+}
+
+function renderReviewSidebar() {
+  const sidebar = document.getElementById('reviewSidebar');
+  sidebar.innerHTML = Object.entries(statusConfig).map(([key, cfg]) => {
+    const count = (submissionsByStatus[key] || []).length;
+    const active = key === currentReviewTab ? 'active' : '';
+    return `<button class="review-tab ${active}" onclick="setReviewTab('${key}', this)">
+      ${cfg.icon} ${cfg.label}
+      ${count > 0 ? `<span class="review-badge">${count}</span>` : ''}
+    </button>`;
+  }).join('');
+}
+
+function setReviewTab(tab, btn) {
+  currentReviewTab = tab;
+  document.querySelectorAll('.review-tab').forEach(t => t.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderReviewPanel(tab);
+}
+
+function renderReviewPanel(tab) {
+  const items = submissionsByStatus[tab] || [];
+  const main = document.getElementById('reviewMain');
+  const cfg = statusConfig[tab];
+
+  let html = `
+    <div class="review-header">
+      <h3>${cfg.label}</h3>
+      <span class="status-pill status-${tab}">${items.length} envíos</span>
+    </div>
+    <div class="review-content">`;
+
+  if (!items.length) {
+    html += '<p style="color:#999;font-size:0.9rem;padding:1rem 0">No hay envíos en esta categoría.</p>';
+  }
+
+  items.forEach(item => {
+    const catLabel = item.category === 'ia' ? 'IA' : (item.category || 'otro').charAt(0).toUpperCase() + (item.category || 'otro').slice(1);
+
+    html += `<div class="review-item">
+      <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.3rem">
+        <span class="article-tag tag-${item.category || 'interdisciplinar'}">${catLabel}</span>
+        <span class="status-pill status-${item.status}" style="font-size:0.62rem">${statusLabels[item.status] || item.status}</span>
+      </div>
+      <div class="review-item-title">${esc(item.title)}</div>
+      <div class="review-item-meta">
+        <span>${esc(item.authors)}</span>
+        <span>${esc(item.email)}</span>
+        <span>Enviado: ${formatDate(item.submitted_at)}</span>
+        ${item.file_name ? `<span>📎 ${esc(item.file_name)}</span>` : ''}
+      </div>`;
+
+    // Show reviews if any
+    if (item.reviews && item.reviews.length) {
+      html += '<div style="margin-top:0.8rem">';
+      item.reviews.forEach((r, i) => {
+        const avg = r.overall_score || 0;
+        const color = avg >= 75 ? '#28a745' : avg >= 50 ? '#ffc107' : '#dc3545';
+        html += `<div style="font-size:0.78rem;color:#777;margin-bottom:0.4rem">
+          Revisor ${i+1}: ${r.reviewer_name || 'Anónimo'} — Puntuación: <strong style="color:${color}">${avg}/100</strong>
+          ${r.decision ? ` — Decisión: ${r.decision}` : ''}
+        </div>`;
+      });
+      html += '</div>';
+    }
+
+    // Actions based on status
+    if (tab === 'pending') {
+      html += `<div class="review-actions">
+        <button class="review-action action-accept" onclick="updateStatus('${item.id}','in_review')">Asignar revisores</button>
+        <button class="review-action action-reject" onclick="updateStatus('${item.id}','rejected')">Desk reject</button>
+      </div>`;
+    } else if (tab === 'in_review') {
+      html += `<div class="review-actions">
+        <button class="review-action action-accept" onclick="updateStatus('${item.id}','accepted')">Aceptar</button>
+        <button class="review-action action-revision" onclick="updateStatus('${item.id}','revision_minor')">Revisión menor</button>
+        <button class="review-action action-reject" onclick="updateStatus('${item.id}','rejected')">Rechazar</button>
+      </div>`;
+    } else if (tab === 'revision_minor' || tab === 'revision_major') {
+      html += `<div class="review-actions">
+        <button class="review-action action-accept" onclick="updateStatus('${item.id}','accepted')">Aceptar revisado</button>
+        <button class="review-action action-revision" onclick="updateStatus('${item.id}','in_review')">Reenviar a revisión</button>
+      </div>`;
+    }
+
+    html += '</div>';
+  });
+
+  html += '</div>';
+  main.innerHTML = html;
+}
+
+async function updateStatus(id, newStatus) {
+  const { error } = await supabase
+    .from('submissions')
+    .update({ status: newStatus })
+    .eq('id', id);
+
+  if (error) {
+    showToast('Error: ' + error.message);
+    return;
+  }
+
+  showToast(`Estado actualizado a: ${statusLabels[newStatus]}`);
+  loadSubmissions();
+}
+
+// ═══════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════
+
+function formatDate(d) {
+  if (!d) return '—';
+  const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const date = new Date(d);
+  return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
+}
+
+function esc(str) {
+  if (!str) return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 4000);
+}
+
+// ═══════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeLogin(); }});
+document.getElementById('articleModal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+document.getElementById('loginModal').addEventListener('click', function(e) { if (e.target === this) closeLogin(); });
+
+// Drag & drop
+const uz = document.getElementById('uploadZone');
+uz.addEventListener('dragover', e => { e.preventDefault(); uz.style.borderColor = 'var(--gold)'; });
+uz.addEventListener('dragleave', () => { uz.style.borderColor = ''; });
+uz.addEventListener('drop', e => {
+  e.preventDefault(); uz.style.borderColor = '';
+  if (e.dataTransfer.files.length) {
+    document.getElementById('fileInput').files = e.dataTransfer.files;
+    handleFileSelect(document.getElementById('fileInput'));
+  }
+});
+
+// Boot
+(async function init() {
+  await checkAuth();
+  loadLatestArticles();
+  loadBoard();
+})();
+</script>
+
+</body>
+</html>
