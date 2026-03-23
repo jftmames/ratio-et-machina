@@ -706,11 +706,11 @@ footer a { color: var(--gold); text-decoration: none; }
 // ═══════════════════════════════════════════════════════
 //  ⚙️ CONFIGURACIÓN — REEMPLAZAR CON TUS CREDENCIALES
 // ═══════════════════════════════════════════════════════
-const SUPABASE_URL = 'https://TU-PROYECTO.supabase.co';
-const SUPABASE_ANON_KEY = 'TU-ANON-KEY-AQUÍ';
+const SUPABASE_URL = 'https://iwoezacytumdnagzwpnq.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_1PAHMw_ywVo8JzIGbS0OSw_si3r8EPF';
 // ═══════════════════════════════════════════════════════
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentUser = null;
 let allArticles = [];
@@ -744,7 +744,7 @@ function toggleMenu() {
 
 async function checkAuth() {
   try {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await db.auth.getSession();
     currentUser = session?.user || null;
     updateAuthUI();
   } catch (e) {
@@ -767,7 +767,7 @@ function updateAuthUI() {
 
 function handleAuth() {
   if (currentUser) {
-    supabase.auth.signOut().then(() => {
+    db.auth.signOut().then(() => {
       currentUser = null;
       updateAuthUI();
       showToast('Sesión cerrada');
@@ -789,7 +789,7 @@ async function doLogin(e) {
   const email = document.getElementById('loginEmail').value;
   const password = document.getElementById('loginPassword').value;
 
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await db.auth.signInWithPassword({ email, password });
 
   if (error) {
     showToast('Error: ' + error.message);
@@ -823,7 +823,7 @@ function checkReviewAccess() {
 
 async function loadArticles(filter, search) {
   try {
-    let query = supabase
+    let query = db
       .from('articles')
       .select('*')
       .eq('status', 'published')
@@ -856,7 +856,7 @@ async function loadArticles(filter, search) {
 
 async function loadLatestArticles() {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('articles')
       .select('*')
       .eq('status', 'published')
@@ -984,7 +984,7 @@ function copyBibtex(id) {
 
 async function loadBoard() {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('board_members')
       .select('*')
       .order('display_order', { ascending: true });
@@ -1045,7 +1045,7 @@ async function handleSubmission(e) {
     if (selectedFile) {
       const ext = selectedFile.name.split('.').pop();
       const path = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError } = await db.storage
         .from('manuscripts')
         .upload(path, selectedFile);
 
@@ -1058,7 +1058,7 @@ async function handleSubmission(e) {
     }
 
     // Insert submission
-    const { error } = await supabase.from('submissions').insert({
+    const { error } = await db.from('submissions').insert({
       title: form.title.value,
       authors: form.authors.value,
       affiliation: form.affiliation.value || null,
@@ -1111,7 +1111,7 @@ let currentReviewTab = 'pending';
 
 async function loadSubmissions() {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('submissions')
       .select('*, reviews(*)')
       .order('submitted_at', { ascending: false });
@@ -1229,7 +1229,7 @@ function renderReviewPanel(tab) {
 }
 
 async function updateStatus(id, newStatus) {
-  const { error } = await supabase
+  const { error } = await db
     .from('submissions')
     .update({ status: newStatus })
     .eq('id', id);
