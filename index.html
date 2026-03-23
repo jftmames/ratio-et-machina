@@ -706,8 +706,8 @@ footer a { color: var(--gold); text-decoration: none; }
 // ═══════════════════════════════════════════════════════
 //  ⚙️ CONFIGURACIÓN — REEMPLAZAR CON TUS CREDENCIALES
 // ═══════════════════════════════════════════════════════
-const SUPABASE_URL = 'https://iwoezacytumdnagzwpnq.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_1PAHMw_ywVo8JzIGbS0OSw_si3r8EPF';
+const SUPABASE_URL = 'https://TU-PROYECTO.supabase.co';
+const SUPABASE_ANON_KEY = 'TU-ANON-KEY-AQUÍ';
 // ═══════════════════════════════════════════════════════
 
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -743,9 +743,13 @@ function toggleMenu() {
 // ═══════════════════════════════════════════
 
 async function checkAuth() {
-  const { data: { session } } = await supabase.auth.getSession();
-  currentUser = session?.user || null;
-  updateAuthUI();
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    currentUser = session?.user || null;
+    updateAuthUI();
+  } catch (e) {
+    console.warn('Auth check failed:', e);
+  }
 }
 
 function updateAuthUI() {
@@ -818,45 +822,66 @@ function checkReviewAccess() {
 // ═══════════════════════════════════════════
 
 async function loadArticles(filter, search) {
-  let query = supabase
-    .from('articles')
-    .select('*')
-    .eq('status', 'published')
-    .order('published_at', { ascending: false });
+  try {
+    let query = supabase
+      .from('articles')
+      .select('*')
+      .eq('status', 'published')
+      .order('published_at', { ascending: false });
 
-  if (filter && filter !== 'all') {
-    query = query.eq('category', filter);
+    if (filter && filter !== 'all') {
+      query = query.eq('category', filter);
+    }
+
+    if (search) {
+      query = query.or(`title.ilike.%${search}%,authors.ilike.%${search}%,abstract.ilike.%${search}%`);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Supabase error:', error);
+      document.getElementById('catalogArticles').innerHTML = errorMsg('Error al cargar artículos: ' + error.message);
+      return;
+    }
+
+    allArticles = data || [];
+    renderArticles('catalogArticles', allArticles);
+    document.getElementById('statArticles').textContent = allArticles.length;
+  } catch (e) {
+    console.error('loadArticles failed:', e);
+    document.getElementById('catalogArticles').innerHTML = errorMsg('No se pudo conectar con la base de datos. Verifica la URL y clave de Supabase.');
   }
-
-  if (search) {
-    query = query.or(`title.ilike.%${search}%,authors.ilike.%${search}%,abstract.ilike.%${search}%`);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    console.error('Error loading articles:', error);
-    return;
-  }
-
-  allArticles = data || [];
-  renderArticles('catalogArticles', allArticles);
-
-  // Update stats
-  document.getElementById('statArticles').textContent = allArticles.length;
 }
 
 async function loadLatestArticles() {
-  const { data } = await supabase
-    .from('articles')
-    .select('*')
-    .eq('status', 'published')
-    .order('published_at', { ascending: false })
-    .limit(3);
+  try {
+    const { data, error } = await supabase
+      .from('articles')
+      .select('*')
+      .eq('status', 'published')
+      .order('published_at', { ascending: false })
+      .limit(3);
 
-  if (data) {
-    renderArticles('latestArticles', data);
-    document.getElementById('statArticles').textContent = data.length + '+';
+    if (error) {
+      console.error('Supabase error:', error);
+      document.getElementById('latestArticles').innerHTML = errorMsg('Error al cargar: ' + error.message + '. Verifica tus credenciales de Supabase en el código.');
+      return;
+    }
+
+    if (data && data.length) {
+      renderArticles('latestArticles', data);
+      document.getElementById('statArticles').textContent = data.length + '+';
+    } else {
+      document.getElementById('latestArticles').innerHTML = errorMsg('No hay artículos publicados aún. Añádelos desde Supabase → Table Editor → articles.');
+    }
+  } catch (e) {
+    console.error('loadLatestArticles failed:', e);
+    document.getElementById('latestArticles').innerHTML = errorMsg(
+      SUPABASE_URL.includes('TU-PROYECTO')
+        ? 'Credenciales de Supabase no configuradas. Edita index.html y reemplaza SUPABASE_URL y SUPABASE_ANON_KEY con tus valores reales.'
+        : 'No se pudo conectar con Supabase (' + SUPABASE_URL + '). Verifica que la URL y la anon key son correctas.'
+    );
   }
 }
 
@@ -958,23 +983,37 @@ function copyBibtex(id) {
 // ═══════════════════════════════════════════
 
 async function loadBoard() {
-  const { data } = await supabase
-    .from('board_members')
-    .select('*')
-    .order('display_order', { ascending: true });
+  try {
+    const { data, error } = await supabase
+      .from('board_members')
+      .select('*')
+      .order('display_order', { ascending: true });
 
-  if (!data) return;
-  document.getElementById('statBoard').textContent = data.length;
-  document.getElementById('boardGrid').innerHTML = data.map(m => `
-    <div class="board-card">
-      <div class="board-role">${esc(m.role)}</div>
-      <div class="board-name">${esc(m.name)}</div>
-      <div class="board-affiliation">${esc(m.affiliation || '')}</div>
-      <div class="board-bio">${esc(m.bio || '')}</div>
-      <div class="board-links">
-        ${m.orcid ? `<a href="https://orcid.org/${m.orcid}" class="board-link" target="_blank">ORCID ↗</a>` : ''}
-      </div>
-    </div>`).join('');
+    if (error) {
+      document.getElementById('boardGrid').innerHTML = errorMsg('Error al cargar comité: ' + error.message);
+      return;
+    }
+
+    if (!data || !data.length) {
+      document.getElementById('boardGrid').innerHTML = errorMsg('No hay miembros del comité registrados.');
+      return;
+    }
+
+    document.getElementById('statBoard').textContent = data.length;
+    document.getElementById('boardGrid').innerHTML = data.map(m => `
+      <div class="board-card">
+        <div class="board-role">${esc(m.role)}</div>
+        <div class="board-name">${esc(m.name)}</div>
+        <div class="board-affiliation">${esc(m.affiliation || '')}</div>
+        <div class="board-bio">${esc(m.bio || '')}</div>
+        <div class="board-links">
+          ${m.orcid ? `<a href="https://orcid.org/${m.orcid}" class="board-link" target="_blank">ORCID ↗</a>` : ''}
+        </div>
+      </div>`).join('');
+  } catch (e) {
+    console.error('loadBoard failed:', e);
+    document.getElementById('boardGrid').innerHTML = errorMsg('No se pudo cargar el comité editorial.');
+  }
 }
 
 // ═══════════════════════════════════════════
@@ -1071,17 +1110,27 @@ let submissionsByStatus = {};
 let currentReviewTab = 'pending';
 
 async function loadSubmissions() {
-  const { data, error } = await supabase
-    .from('submissions')
-    .select('*, reviews(*)')
-    .order('submitted_at', { ascending: false });
+  try {
+    const { data, error } = await supabase
+      .from('submissions')
+      .select('*, reviews(*)')
+      .order('submitted_at', { ascending: false });
 
-  if (error) { console.error(error); return; }
+    if (error) {
+      console.error(error);
+      document.getElementById('reviewMain').innerHTML = `<div class="review-content">${errorMsg('Error al cargar envíos: ' + error.message)}</div>`;
+      return;
+    }
 
-  // Group by status
-  submissionsByStatus = {};
-  for (const s of Object.keys(statusConfig)) {
-    submissionsByStatus[s] = (data || []).filter(x => x.status === s);
+    // Group by status
+    submissionsByStatus = {};
+    for (const s of Object.keys(statusConfig)) {
+      submissionsByStatus[s] = (data || []).filter(x => x.status === s);
+    }
+  } catch (e) {
+    console.error('loadSubmissions failed:', e);
+    document.getElementById('reviewMain').innerHTML = `<div class="review-content">${errorMsg('No se pudieron cargar los envíos.')}</div>`;
+    return;
   }
 
   renderReviewSidebar();
@@ -1212,6 +1261,14 @@ function esc(str) {
   return div.innerHTML;
 }
 
+function errorMsg(text) {
+  return `<div style="padding:2rem;text-align:center;max-width:500px;margin:0 auto">
+    <div style="font-size:1.5rem;margin-bottom:0.8rem;opacity:0.3">⚠</div>
+    <div style="font-size:0.9rem;color:var(--slate);line-height:1.6">${text}</div>
+    <div style="font-size:0.75rem;color:#bbb;margin-top:1rem">Abre la consola del navegador (F12) para más detalles.</div>
+  </div>`;
+}
+
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -1241,7 +1298,23 @@ uz.addEventListener('drop', e => {
 
 // Boot
 (async function init() {
-  await checkAuth();
+  // Check for placeholder credentials
+  if (SUPABASE_URL.includes('TU-PROYECTO') || SUPABASE_ANON_KEY.includes('TU-ANON-KEY')) {
+    const msg = errorMsg(
+      '<b>Configuración pendiente</b><br>Edita <code>index.html</code> y reemplaza ' +
+      '<code>SUPABASE_URL</code> y <code>SUPABASE_ANON_KEY</code> con tus credenciales reales de Supabase.'
+    );
+    document.getElementById('latestArticles').innerHTML = msg;
+    document.getElementById('statArticles').textContent = '0';
+    document.getElementById('statBoard').textContent = '0';
+    console.warn('Ratio & Machina: Credenciales de Supabase no configuradas.');
+    return;
+  }
+
+  try {
+    await checkAuth();
+  } catch(e) { console.warn('Auth init failed:', e); }
+
   loadLatestArticles();
   loadBoard();
 })();
