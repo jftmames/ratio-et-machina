@@ -1366,7 +1366,7 @@ function renderReviewPanel(tab) {
     // Actions based on status
     if (tab === 'pending') {
       html += `<div class="review-actions">
-        <button class="review-action action-accept" onclick="openAssign('${item.id}','${esc(item.title)}')">Asignar revisores</button>
+        <button class="review-action action-accept" onclick="openAssign('${item.id}')">Asignar revisores</button>
         <button class="review-action action-reject" onclick="updateStatus('${item.id}','rejected')">Desk reject</button>
       </div>`;
     } else if (tab === 'in_review') {
@@ -1443,8 +1443,12 @@ function showToast(msg) {
 
 let assigningSubmissionId = null;
 
-function openAssign(submissionId, title) {
+function openAssign(submissionId) {
   assigningSubmissionId = submissionId;
+  // Look up title from loaded data
+  const allSubs = Object.values(submissionsByStatus).flat();
+  const sub = allSubs.find(s => s.id === submissionId);
+  const title = sub ? sub.title : 'Manuscrito';
   document.getElementById('assignSubtitle').textContent = title;
   document.getElementById('assignResult').style.display = 'none';
   document.getElementById('assignBtn').style.display = '';
