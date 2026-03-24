@@ -555,6 +555,74 @@ nav {
 .assign-reviewer-row .form-label { margin-bottom: 0.3rem; font-size: 0.7rem; }
 .assign-reviewer-row .form-input { padding: 0.6rem 0.8rem; font-size: 0.85rem; }
 
+/* ── AUTHOR PORTAL ── */
+.author-status-card {
+  background: var(--white); border: 1px solid var(--mist); border-radius: 8px;
+  padding: 2rem; margin-bottom: 1.5rem;
+}
+.author-status-bar {
+  display: flex; align-items: center; gap: 0.5rem; margin: 1.5rem 0;
+}
+.status-step {
+  flex: 1; text-align: center; padding: 0.6rem 0.3rem;
+  font-size: 0.68rem; font-weight: 600; letter-spacing: 0.03em;
+  text-transform: uppercase; color: #bbb; position: relative;
+  border-bottom: 3px solid var(--mist);
+}
+.status-step.reached { color: var(--gold); border-bottom-color: var(--gold); }
+.status-step.current { color: var(--white); border-bottom-color: var(--burgundy);
+  background: var(--burgundy); border-radius: 4px;
+}
+.status-step.final-accept { color: var(--white); background: #28a745; border-bottom-color: #28a745; border-radius: 4px; }
+.status-step.final-reject { color: var(--white); background: #dc3545; border-bottom-color: #dc3545; border-radius: 4px; }
+
+.author-review-card {
+  background: var(--parchment); border-radius: 6px; padding: 1.2rem;
+  margin-bottom: 0.8rem; border-left: 3px solid var(--gold);
+}
+.author-review-card h4 {
+  font-family: var(--serif); font-size: 1rem; font-weight: 500;
+  margin-bottom: 0.5rem; color: var(--ink);
+}
+.author-review-card .review-comments {
+  font-size: 0.88rem; color: var(--slate); line-height: 1.7;
+  white-space: pre-wrap;
+}
+.author-review-card .review-scores {
+  display: flex; gap: 1rem; margin-top: 0.8rem; flex-wrap: wrap;
+}
+.author-review-card .score-item {
+  font-size: 0.75rem; color: var(--slate);
+}
+.author-review-card .score-item strong {
+  color: var(--gold); font-size: 0.9rem;
+}
+
+.author-resubmit {
+  background: rgba(0,123,255,0.04); border: 1px solid rgba(0,123,255,0.2);
+  border-radius: 8px; padding: 1.5rem; margin-top: 1.5rem;
+}
+.author-resubmit h4 {
+  font-family: var(--serif); font-size: 1.1rem; font-weight: 500;
+  color: #004085; margin-bottom: 0.8rem;
+}
+
+.token-display {
+  background: var(--ink); color: var(--gold-light); border-radius: 6px;
+  padding: 1.5rem; margin-top: 1.5rem; text-align: center;
+}
+.token-display .token-label {
+  font-size: 0.72rem; font-weight: 600; letter-spacing: 0.1em;
+  text-transform: uppercase; color: rgba(247,243,237,0.5); margin-bottom: 0.5rem;
+}
+.token-display code {
+  display: block; font-size: 0.85rem; word-break: break-all;
+  margin: 0.5rem 0; color: var(--gold-light); cursor: pointer;
+}
+.token-display .token-hint {
+  font-size: 0.75rem; color: rgba(247,243,237,0.4); margin-top: 0.5rem;
+}
+
 /* ── FOOTER ── */
 footer {
   background: var(--ink); color: rgba(247,243,237,0.5);
@@ -604,6 +672,7 @@ footer a { color: var(--gold); text-decoration: none; }
       <button class="nav-link" data-page="submit" onclick="goTo('submit')">Enviar</button>
       <button class="nav-link" data-page="review" onclick="goTo('review')">Revisión</button>
       <button class="nav-link" data-page="reviewer" onclick="goTo('reviewer')" style="color:rgba(212,168,67,0.7)">Revisor</button>
+      <button class="nav-link" data-page="author" onclick="goTo('author')" style="color:rgba(212,168,67,0.7)">Seguimiento</button>
       <button class="nav-auth" id="authBtn" onclick="handleAuth()">Acceso editor</button>
     </div>
   </div>
@@ -817,6 +886,37 @@ footer a { color: var(--gold); text-decoration: none; }
 
     <!-- Dashboard del revisor (se muestra tras login) -->
     <div id="reviewerDashboard" style="display:none"></div>
+  </div>
+</div>
+
+<!-- ═══ AUTHOR PORTAL ═══ -->
+<div class="page" id="page-author">
+  <div class="section">
+    <div class="section-header">
+      <h2>Seguimiento de manuscrito</h2>
+      <div class="section-divider"></div>
+      <p>Consulta el estado de tu envío y responde a solicitudes de revisión</p>
+    </div>
+
+    <div id="authorLogin">
+      <div class="reviewer-login-card">
+        <h3>Acceso de autor</h3>
+        <p class="subtitle">Introduce el email y token de seguimiento que recibiste al enviar tu manuscrito</p>
+        <form onsubmit="authorLogin(event)">
+          <div class="form-group">
+            <label class="form-label">Email de contacto</label>
+            <input type="email" class="form-input" id="authorEmail" placeholder="tu@universidad.edu" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Token de seguimiento</label>
+            <input type="text" class="form-input" id="authorToken" placeholder="Pega aquí tu token de seguimiento" required>
+          </div>
+          <button type="submit" class="submit-btn" style="width:100%;justify-content:center">Consultar estado →</button>
+        </form>
+      </div>
+    </div>
+
+    <div id="authorDashboard" style="display:none"></div>
   </div>
 </div>
 
@@ -1391,12 +1491,17 @@ async function handleSubmission(e) {
       }
     }
 
-    // Insert submission
+    // Generate author tracking token
+    const authorToken = Array.from(crypto.getRandomValues(new Uint8Array(20)))
+      .map(b => b.toString(16).padStart(2, '0')).join('');
+    const authorEmail = form.email.value;
+
+    // Insert submission with token
     const { error } = await db.from('submissions').insert({
       title: form.title.value,
       authors: form.authors.value,
       affiliation: form.affiliation.value || null,
-      email: form.email.value,
+      email: authorEmail,
       orcid: form.orcid.value || null,
       category: form.category.value,
       abstract: form.abstract.value,
@@ -1404,22 +1509,44 @@ async function handleSubmission(e) {
       cover_letter: form.cover_letter.value || null,
       file_path: filePath,
       file_name: fileName,
+      author_token: authorToken,
     });
 
     if (error) throw error;
 
-    showToast('Manuscrito recibido correctamente. Recibirás confirmación en 48h.');
-    form.reset();
+    // Show success with token
+    const trackingUrl = `${window.location.origin}${window.location.pathname}?page=author&email=${encodeURIComponent(authorEmail)}&token=${authorToken}`;
+
+    form.innerHTML = `
+      <div style="text-align:center;padding:1rem 0">
+        <div style="font-size:2.5rem;margin-bottom:1rem">✓</div>
+        <h3 style="font-family:var(--serif);font-size:1.4rem;margin-bottom:0.5rem">Manuscrito recibido</h3>
+        <p style="color:var(--slate);font-size:0.9rem;margin-bottom:1.5rem">Tu envío ha sido registrado. Recibirás acuse de recibo en 48h.</p>
+
+        <div class="token-display">
+          <div class="token-label">Tu token de seguimiento</div>
+          <code onclick="navigator.clipboard.writeText('${authorToken}').then(()=>showToast('Token copiado'))">${authorToken}</code>
+          <div class="token-hint">Haz clic para copiar · Guárdalo para consultar el estado de tu envío</div>
+        </div>
+
+        <div style="margin-top:1.5rem;background:var(--white);border:1px solid var(--mist);border-radius:6px;padding:1rem">
+          <div style="font-size:0.72rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--gold);margin-bottom:0.5rem">Enlace de seguimiento</div>
+          <code style="font-size:0.7rem;word-break:break-all;color:var(--slate);cursor:pointer;display:block;padding:0.5rem;background:var(--parchment);border-radius:3px"
+                onclick="navigator.clipboard.writeText('${trackingUrl}').then(()=>showToast('Enlace copiado'))">${esc(trackingUrl)}</code>
+          <p style="font-size:0.72rem;color:#999;margin-top:0.5rem">Desde este enlace podrás ver el estado, leer los comentarios de los revisores y subir versiones corregidas.</p>
+        </div>
+
+        <button class="submit-btn" style="margin-top:1.5rem" onclick="location.reload()">Enviar otro manuscrito →</button>
+      </div>`;
+
+    showToast('Manuscrito recibido correctamente');
     selectedFile = null;
-    document.getElementById('uploadText').textContent = 'Haz clic o arrastra tu archivo aquí';
-    document.getElementById('uploadZone').classList.remove('has-file');
 
   } catch (err) {
     showToast('Error al enviar: ' + err.message);
+    btn.disabled = false;
+    btn.textContent = 'Enviar manuscrito →';
   }
-
-  btn.disabled = false;
-  btn.textContent = 'Enviar manuscrito →';
 }
 
 // ═══════════════════════════════════════════
@@ -1928,6 +2055,225 @@ async function submitEvaluation() {
 }
 
 // ═══════════════════════════════════════════
+//  AUTHOR PORTAL
+// ═══════════════════════════════════════════
+
+let currentSubmission = null;
+
+async function authorLogin(e) {
+  e.preventDefault();
+  const email = document.getElementById('authorEmail').value.trim();
+  const token = document.getElementById('authorToken').value.trim();
+
+  try {
+    // Fetch submission with reviews (only comments_to_author visible)
+    const { data, error } = await db
+      .from('submissions')
+      .select('*, reviews(reviewer_name, score_originality, score_methodology, score_clarity, score_relevance, overall_score, comments_to_author, decision, status, completed_at)')
+      .eq('email', email)
+      .eq('author_token', token)
+      .single();
+
+    if (error || !data) {
+      showToast('Token o email no válido. Verifica los datos recibidos al enviar tu manuscrito.');
+      return;
+    }
+
+    currentSubmission = data;
+    renderAuthorDashboard();
+
+  } catch (e) {
+    console.error('Author login failed:', e);
+    showToast('Error al acceder: ' + e.message);
+  }
+}
+
+function renderAuthorDashboard() {
+  const s = currentSubmission;
+  const dash = document.getElementById('authorDashboard');
+  document.getElementById('authorLogin').style.display = 'none';
+  dash.style.display = 'block';
+
+  const catLabel = s.category === 'ia' ? 'IA' : (s.category || '').charAt(0).toUpperCase() + (s.category || '').slice(1);
+
+  // Status bar steps
+  const steps = ['pending', 'in_review', 'revision_minor', 'accepted'];
+  const stepLabels = { pending: 'Recibido', in_review: 'En revisión', revision_minor: 'Revisión solicitada', revision_major: 'Revisión solicitada', accepted: 'Aceptado', rejected: 'Rechazado' };
+
+  const isRejected = s.status === 'rejected';
+  const isAccepted = s.status === 'accepted';
+  const needsRevision = s.status === 'revision_minor' || s.status === 'revision_major';
+  const currentIdx = steps.indexOf(s.status);
+
+  let statusBarHtml = '<div class="author-status-bar">';
+  steps.forEach((step, i) => {
+    let cls = '';
+    if (isRejected && step === 'accepted') {
+      cls = 'final-reject';
+      step = 'rejected';
+    } else if (isAccepted && step === 'accepted') {
+      cls = 'final-accept';
+    } else if (step === s.status) {
+      cls = 'current';
+    } else if (i < currentIdx || (i < steps.length - 1 && (isAccepted || isRejected))) {
+      cls = 'reached';
+    }
+    statusBarHtml += `<div class="status-step ${cls}">${stepLabels[step] || step}</div>`;
+  });
+  statusBarHtml += '</div>';
+
+  // Completed reviews (only show comments_to_author)
+  const completedReviews = (s.reviews || []).filter(r => r.status === 'completed');
+  let reviewsHtml = '';
+  if (completedReviews.length > 0 && (needsRevision || isAccepted || isRejected)) {
+    reviewsHtml = '<h3 style="font-family:var(--serif);font-size:1.2rem;margin:1.5rem 0 0.8rem">Evaluaciones recibidas</h3>';
+    completedReviews.forEach((r, i) => {
+      reviewsHtml += `<div class="author-review-card">
+        <h4>Revisor ${i + 1} — Recomendación: ${decisionLabel(r.decision)}</h4>
+        <div class="review-scores">
+          <span class="score-item">Originalidad: <strong>${r.score_originality || '—'}</strong></span>
+          <span class="score-item">Metodología: <strong>${r.score_methodology || '—'}</strong></span>
+          <span class="score-item">Claridad: <strong>${r.score_clarity || '—'}</strong></span>
+          <span class="score-item">Relevancia: <strong>${r.score_relevance || '—'}</strong></span>
+          <span class="score-item">Global: <strong>${r.overall_score || '—'}/100</strong></span>
+        </div>
+        ${r.comments_to_author ? `<div style="margin-top:0.8rem"><div style="font-size:0.72rem;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:0.3rem">Comentarios</div><div class="review-comments">${esc(r.comments_to_author)}</div></div>` : '<p style="font-size:0.82rem;color:#999;margin-top:0.5rem">Sin comentarios para el autor.</p>'}
+      </div>`;
+    });
+  }
+
+  // Resubmit section
+  let resubmitHtml = '';
+  if (needsRevision) {
+    const revType = s.status === 'revision_minor' ? 'menor' : 'mayor';
+    resubmitHtml = `
+      <div class="author-resubmit">
+        <h4>Se solicita revisión ${revType}</h4>
+        <p style="font-size:0.88rem;color:var(--slate);margin-bottom:1rem">Lee los comentarios de los revisores, realiza las correcciones solicitadas y sube la versión revisada del manuscrito.</p>
+        <div class="form-group">
+          <label class="form-label">Manuscrito revisado</label>
+          <div class="upload-zone" id="resubmitZone" onclick="document.getElementById('resubmitFile').click()" style="padding:1.5rem">
+            <div class="upload-icon" style="font-size:1.5rem">📄</div>
+            <div class="upload-text" id="resubmitText">Haz clic para subir la versión revisada</div>
+            <div class="upload-hint">PDF, DOCX o LaTeX · Máximo 25 MB</div>
+            <input type="file" id="resubmitFile" hidden accept=".pdf,.docx,.tex,.zip" onchange="handleResubmitFile(this)">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nota de respuesta al revisor (opcional)</label>
+          <textarea class="form-textarea" id="resubmitNote" placeholder="Describe brevemente los cambios realizados..." style="min-height:80px"></textarea>
+        </div>
+        <button class="submit-btn" id="resubmitBtn" onclick="submitRevision()">Enviar versión revisada →</button>
+      </div>`;
+  }
+
+  // Accepted message
+  let acceptedHtml = '';
+  if (isAccepted) {
+    acceptedHtml = `
+      <div style="text-align:center;padding:2rem;background:rgba(40,167,69,0.05);border-radius:8px;border:1px solid rgba(40,167,69,0.15);margin-top:1.5rem">
+        <div style="font-size:2rem;margin-bottom:0.5rem">🎉</div>
+        <h3 style="font-family:var(--serif);font-size:1.3rem;color:#28a745">Manuscrito aceptado</h3>
+        <p style="color:var(--slate);font-size:0.9rem;margin-top:0.5rem">Tu artículo ha sido aceptado para publicación en Ratio & Machina. El equipo editorial te contactará con los detalles de publicación.</p>
+      </div>`;
+  }
+
+  // Rejected message
+  let rejectedHtml = '';
+  if (isRejected) {
+    rejectedHtml = `
+      <div style="text-align:center;padding:2rem;background:rgba(220,53,69,0.04);border-radius:8px;border:1px solid rgba(220,53,69,0.12);margin-top:1.5rem">
+        <h3 style="font-family:var(--serif);font-size:1.3rem;color:#dc3545">Manuscrito no aceptado</h3>
+        <p style="color:var(--slate);font-size:0.9rem;margin-top:0.5rem">Lamentablemente tu manuscrito no ha sido aceptado en esta ocasión. Revisa los comentarios de los evaluadores para futuras contribuciones.</p>
+      </div>`;
+  }
+
+  dash.innerHTML = `
+    <div class="author-status-card">
+      <div style="display:flex;align-items:center;gap:0.8rem;margin-bottom:0.5rem">
+        <span class="article-tag tag-${s.category || 'interdisciplinar'}">${catLabel}</span>
+        <span class="status-pill status-${s.status}" style="font-size:0.68rem">${statusLabels[s.status] || s.status}</span>
+      </div>
+      <h3 style="font-family:var(--serif);font-size:1.3rem;font-weight:500;margin-bottom:0.3rem">${esc(s.title)}</h3>
+      <p style="font-size:0.85rem;color:var(--slate)">${esc(s.authors)} · Enviado ${formatDate(s.submitted_at)}</p>
+      ${statusBarHtml}
+    </div>
+    ${reviewsHtml}
+    ${resubmitHtml}
+    ${acceptedHtml}
+    ${rejectedHtml}
+  `;
+}
+
+function decisionLabel(d) {
+  const labels = { accept: 'Aceptar', minor_revision: 'Revisión menor', major_revision: 'Revisión mayor', reject: 'Rechazar' };
+  return labels[d] || d || '—';
+}
+
+let resubmitSelectedFile = null;
+
+function handleResubmitFile(input) {
+  if (input.files.length) {
+    resubmitSelectedFile = input.files[0];
+    document.getElementById('resubmitText').textContent = resubmitSelectedFile.name;
+    document.getElementById('resubmitZone').classList.add('has-file');
+  }
+}
+
+async function submitRevision() {
+  if (!resubmitSelectedFile) {
+    showToast('Selecciona el archivo de la versión revisada.');
+    return;
+  }
+
+  const btn = document.getElementById('resubmitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Subiendo...';
+
+  try {
+    // Upload revised file
+    const ext = resubmitSelectedFile.name.split('.').pop();
+    const path = `revised_${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+    const { error: uploadError } = await db.storage
+      .from('manuscripts')
+      .upload(path, resubmitSelectedFile);
+
+    if (uploadError) throw uploadError;
+
+    // Update submission: new file, status back to in_review, add editor note
+    const note = document.getElementById('resubmitNote').value || '';
+    const editorNote = `[${new Date().toISOString().split('T')[0]}] Autor envió versión revisada: ${resubmitSelectedFile.name}${note ? '. Nota: ' + note : ''}`;
+
+    const { error } = await db
+      .from('submissions')
+      .update({
+        file_path: path,
+        file_name: resubmitSelectedFile.name,
+        status: 'in_review',
+        editor_notes: currentSubmission.editor_notes
+          ? currentSubmission.editor_notes + '\n' + editorNote
+          : editorNote,
+      })
+      .eq('id', currentSubmission.id)
+      .eq('author_token', currentSubmission.author_token);
+
+    if (error) throw error;
+
+    showToast('Versión revisada enviada correctamente. El equipo editorial la revisará.');
+    currentSubmission.status = 'in_review';
+    currentSubmission.file_name = resubmitSelectedFile.name;
+    resubmitSelectedFile = null;
+    renderAuthorDashboard();
+
+  } catch (e) {
+    console.error('Resubmit failed:', e);
+    showToast('Error al enviar: ' + e.message);
+    btn.disabled = false;
+    btn.textContent = 'Enviar versión revisada →';
+  }
+}
+
+// ═══════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════
 
@@ -1970,15 +2316,22 @@ uz.addEventListener('drop', e => {
   loadLatestArticles();
   loadBoard();
 
-  // Check for reviewer URL params (e.g., ?page=reviewer&token=xxx&email=yyy)
+  // Check for URL params (reviewer or author direct links)
   const params = new URLSearchParams(window.location.search);
+
   if (params.get('page') === 'reviewer' && params.get('token')) {
     goTo('reviewer');
     document.getElementById('reviewerEmail').value = params.get('email') || '';
     document.getElementById('reviewerToken').value = params.get('token') || '';
     if (params.get('email') && params.get('token')) {
-      // Auto-login
       setTimeout(() => reviewerLogin(new Event('submit')), 500);
+    }
+  } else if (params.get('page') === 'author' && params.get('token')) {
+    goTo('author');
+    document.getElementById('authorEmail').value = params.get('email') || '';
+    document.getElementById('authorToken').value = params.get('token') || '';
+    if (params.get('email') && params.get('token')) {
+      setTimeout(() => authorLogin(new Event('submit')), 500);
     }
   }
 })();
